@@ -5,7 +5,8 @@ const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 
 function generateRandomString() {
-
+  let id = Math.random().toString(36).slice(7)
+  console.log(id)
 }
 
 const urlDatabase = {
@@ -49,3 +50,5 @@ app.get("/urls/:shortURL", (req, res) => {
   let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
   res.render("urls_show", templateVars);
 });
+
+generateRandomString()
