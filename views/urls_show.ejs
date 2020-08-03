@@ -7,8 +7,9 @@
 </head>
 
 <body>
-  <div class="card text-center">
-      <div class="card-header"> <a href = '#'> create new URL </a> </div>
+  <%- include('partials/_header') %> 
+   <div class="card text-center">
+      <div class="card-header"></div>
       <div class="card-body">
         <h5 class="card-title">TinyURL for: <%= longURL %></h5>
         <p class="card-text">Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a></p>
