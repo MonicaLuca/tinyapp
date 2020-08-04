@@ -9,8 +9,8 @@
   <title>TinyApp</title>
 </head>
 <body>
-  <main style="margin: 1em;">
-    <%- include('partials/_header') %> 
+  <%- include('partials/_header') %> 
+  <main style="margin: 1em;"> 
     <h3>My URLs</h3>
     <table class="table">
       <thead>
@@ -24,8 +24,10 @@
           <tr>
             <td><%= url %></td>
             <td><%= urls[url] %></td>
+            <td><form method="POST" action=/urls/<%= url %>/delete><button class="btn btn-outline-danger"> delete </button></form></td>
           </tr>
         <% } %>
+        
       </tbody>
     </table>
   </main>
