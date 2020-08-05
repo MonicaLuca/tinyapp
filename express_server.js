@@ -3,8 +3,11 @@ const app = express();
 const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
+const e = require("express");
 
 app.set("view engine", "ejs");
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({extended: true}));
 
 
 function generateRandomString() {
@@ -17,19 +20,65 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-app.use(cookieParser());
-app.use(bodyParser.urlencoded({extended: true}));
+const users = { 
+  "userRandomID": {
+    id: "userRandomID", 
+    email: "user@example.com", 
+    password: "purple-monkey-dinosaur"
+  },
+ "user2RandomID": {
+    id: "user2RandomID", 
+    email: "user2@example.com", 
+    password: "dishwasher-funk"
+  }
+}
 
-app.get("/", (req, res) => {
+const findUserId = (email) => {
+  for (let id in users){
+    if (email === users[id].email){
+      return id
+    }
+  }
+}
+
+const checkAccountExists = (email, password) => {
+  for(let user in users) {
+    if(email === users[user].email && password === users[user].password) {
+      return true
+    }
+  }
+}
+  
+const createValidUser = (submittedEmail, submittedPassword) => {
+  if (submittedEmail === '' || submittedPassword === ''){
+    return false
+  } else {
+    return true
+  };
+}
+
+const checkDuplicateEmail = (email) => {
+  for (let id in users) {
+    if (email === users[id].email) {
+      // console.log(`user id: ${users[id].id}`)
+      return users[id]
+    }
+  }
+  return false
+};
+
+  
+app.get("/", (req, res) => {   
   res.send("Hello!");
 });
+  
 
 // app.get("/urls.json", (req, res) => {
 //   res.json(urlDatabase);
 // })
 
 app.get("/urls", (req, res) => {
-  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
+  let templateVars = { user: users[req.cookies["user_id"]], urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
@@ -41,7 +90,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { username: req.cookies["username"]}
+  let templateVars = { user: users[req.cookies["user_id"]]}
   res.render("urls_new", templateVars);
 });
 
@@ -55,7 +104,7 @@ app.post("/urls/:id/edit", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { username: req.cookies["username"], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
+  let templateVars = { user: users[req.cookies["user_id"]], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
   res.render("urls_show", templateVars);
 });
 
@@ -69,14 +118,52 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+app.get("/login", (req, res) => {
+  let templateVars = { user: users[req.cookies["user_id"]] }
+  res.render("urls_login", templateVars)
+})
+
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect("/urls") 
+  if(!checkDuplicateEmail(req.body.email)){
+    res.status(403).json({error:"There is no user with that email"})
+  } else if(!checkAccountExists(req.body.email, req.body.password)){
+      res.status(403).json({error:"The email and password do not match"})
+  } else {
+    let newID = findUserId(req.body.email)
+    res.cookie('user_id', newID);
+    res.redirect("/urls") 
+  }
 });
 
+
 app.post("/logout", (req, res) => {
-  res.clearCookie('username')
+  res.clearCookie('user_id')
   res.redirect("/urls")
+});
+
+app.get("/register", (req, res) => {
+  let templateVars = { user: users[req.cookies["user_id"]] }
+  res.render("urls_register", templateVars)
+})
+
+app.post("/register", (req, res) => {
+  if(!createValidUser(req.body.email, req.body.password)){
+    res.status(400).json({error:"password and email can't be blank"})
+  }
+    if(checkDuplicateEmail(req.body.email)){
+      res.status(400).json({error:'error 400 user exists'})
+    } else {
+    const user = generateRandomString();
+      users[user] = {
+        id: user,
+        email: req.body.email,
+        password: req.body.password
+      }
+      res.cookie("user_id", user);
+      res.redirect("/urls")
+    }
+   
+
 });
 
 app.listen(PORT, () => {
