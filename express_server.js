@@ -1,8 +1,11 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+const cookieParser = require('cookie-parser');
+const bodyParser = require("body-parser");
 
 app.set("view engine", "ejs");
+
 
 function generateRandomString() {
   let id = Math.random().toString(36).slice(2,8);
@@ -14,7 +17,7 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-const bodyParser = require("body-parser");
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({extended: true}));
 
 app.get("/", (req, res) => {
@@ -26,7 +29,7 @@ app.get("/", (req, res) => {
 // })
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
+  let templateVars = { username: req.cookies["username"], urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
@@ -34,12 +37,12 @@ app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
   let shortURL = generateRandomString();
   urlDatabase[shortURL] = longURL;
-  // console.log(longURL, shortURL, urlDatabase);
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let templateVars = { username: req.cookies["username"]}
+  res.render("urls_new", templateVars);
 });
 
 app.post("/urls/:id", (req, res) => {
@@ -52,7 +55,7 @@ app.post("/urls/:id/edit", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
+  let templateVars = { username: req.cookies["username"], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
   res.render("urls_show", templateVars);
 });
 
@@ -64,6 +67,16 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL];
   res.redirect(longURL);
+});
+
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect("/urls") 
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie('username')
+  res.redirect("/urls")
 });
 
 app.listen(PORT, () => {
