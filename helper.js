@@ -1,5 +1,5 @@
-
 const bcrypt = require('bcrypt');
+
 //Database holding shorturl, the longURL, and the userID to specify which link belongs to which account
 const urlDatabase = {
   "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "userRandomID" },
@@ -36,8 +36,8 @@ const findUserUrl = (user) => {
 
 //finds userID for corresponding email
 const getUserByEmail = (email,database) => {
-  for (let id in database) { //changed from users
-    if (email === database[id].email) { //changed from users
+  for (let id in database) { 
+    if (email === database[id].email) { 
       return id;
     }
   }
@@ -65,7 +65,6 @@ const createValidUser = (submittedEmail, submittedPassword) => {
 const checkDuplicateEmail = (email) => {
   for (let id in users) {
     if (email === users[id].email) {
-      // console.log(`user id: ${users[id].id}`)
       return users[id];
     }
   }
