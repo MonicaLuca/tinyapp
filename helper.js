@@ -35,9 +35,9 @@ const findUserUrl = (user) => {
  };
 
 //finds userID for corresponding email
-const findUserId = (email) => {
-  for (let id in users) {
-    if (email === users[id].email) {
+const getUserByEmail = (email,database) => {
+  for (let id in database) { //changed from users
+    if (email === database[id].email) { //changed from users
       return id;
     }
   }
@@ -72,6 +72,15 @@ const checkDuplicateEmail = (email) => {
   return false;
 };
 
+//checks if User is Logged In
+const userNotLoggedIn = function(req){
+  return (!req.session.user_id || req.session.user_id === undefined)
+}
+//checks if User has created url
+const userOwnsUrl = function (req){
+  const user = req.session.user_id
+  const url = urlDatabase[req.params.shortURL]
+  return (user === url.userID)
+}
 
-
-module.exports = { generateRandomString, findUserUrl, findUserId, checkAccountExists, createValidUser, checkDuplicateEmail, users, urlDatabase }
+module.exports = { generateRandomString, findUserUrl, getUserByEmail, checkAccountExists, createValidUser, checkDuplicateEmail, userOwnsUrl, userNotLoggedIn,  users, urlDatabase }
