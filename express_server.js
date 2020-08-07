@@ -6,7 +6,7 @@ const bodyParser = require("body-parser");
 const bcrypt = require('bcrypt');
 const cookieSession = require('cookie-session')
 
-const  { generateRandomString, findUserUrl, findUserId, checkAccountExists, createValidUser, checkDuplicateEmail, users, urlDatabase } = require("./helper")
+const  { generateRandomString, findUserUrl, getUserByEmail, checkAccountExists, createValidUser, checkDuplicateEmail, userNotLoggedIn, userOwnsUrl, users, urlDatabase } = require("./helper")
 
 app.set("view engine", "ejs");
 app.use(cookieParser());
@@ -17,10 +17,14 @@ app.use(cookieSession({
 }))
 
 
- //home page ***create new page that prompts register or login** 
-app.get("/", (req, res) => {   
-  res.send("Hello!");
-});
+ //home page if user is logged in, redirects to users /urls, if not redirects to login
+ app.get("/", (req, res) => {
+  if (req.session.user_id) {
+  res.redirect("/urls");
+  } else {
+  res.redirect("/login");
+  }
+  }); 
   
 //allows users who are logged in to retrieve their saved URLS
 app.get("/urls", (req, res) => {
@@ -51,14 +55,13 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls/:id", (req, res) => {
-  console.log(users[req.session.user_id] , urlDatabase[req.params.id].userID)
-  if (users[req.session.user_id] !== urlDatabase[req.params.id].userID) {
+  if (users[req.session.user_id].id !== urlDatabase[req.params.id].userID) {
+    console.log(users[req.session.user_id].id)
     res.send("error:Please login")
   } else {
     urlDatabase[req.params.id].longURL = req.body.longURL;
     res.redirect(`/urls/${req.params.id}`);
   }
-  console.log(urlDatabase[url].userID)
 });
 
 app.post("/urls/:id/edit", (req, res) => {
@@ -66,15 +69,24 @@ app.post("/urls/:id/edit", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { user: users[req.session.user_id], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]};
-  res.render("urls_show", templateVars);
+  if(userNotLoggedIn(req)) { 
+    res.render("errors", { message: "Please Log In or Register" })
+  } 
+  if (!urlDatabase[req.params.shortURL]) {
+    res.status(403).json({Error: "URL doesn't exist!"});
+  } else {
+    if (!userOwnsUrl(req)) {
+      res.status(403).json({Error: "Can't Access URL!"})
+    } else {
+      let templateVars = { user: users[req.session.user_id], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL]}
+      res.render("urls_show", templateVars);
+    }  
+  }
 });
 
-app.post("/urls/:shortURL/delete", (req, res) => {
-  console.log(req.session.user_id)
-  console.log(urlDatabase[req.params.shortURL]) 
+app.post("/urls/:shortURL/delete", (req, res) => { 
   if (req.session.user_id !== urlDatabase[req.params.shortURL].userID) {
-    res.send("error:Please login")
+    res.send("error:Please login1")
   } else {
     delete urlDatabase[req.params.shortURL];
     res.redirect("/urls");
@@ -97,7 +109,7 @@ app.post("/login", (req, res) => {
   } else if(!checkAccountExists(req.body.email, req.body.password)){
     res.status(403).json({error:"The email and password do not match"})
   } else {
-    let newID = findUserId(req.body.email)
+    let newID = getUserByEmail(req.body.email, users)
     req.session.user_id = newID
     res.redirect("/urls") 
   }
@@ -131,8 +143,6 @@ app.post("/register", (req, res) => {
       req.session.user_id = user;
       res.redirect("/urls")
     }
-   
-
 });
 
 app.listen(PORT, () => {
